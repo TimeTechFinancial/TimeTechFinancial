@@ -1,0 +1,3 @@
+rootProject.name = 'TimeTechFinancial'
+
+include ':app'
