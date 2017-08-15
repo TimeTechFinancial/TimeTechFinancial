@@ -153,7 +153,7 @@ export default class WatchListView extends Component {
     render() {
         let listViewContent;
 
-        if(this.state.loadingView){
+        if (this.state.loadingView) {
             listViewContent =
                 <LoadingReloadView
                     loading={true}
@@ -162,7 +162,7 @@ export default class WatchListView extends Component {
                 />
             ;
         }
-        else{
+        else {
             listViewContent =
                 <TouchableWithoutFeedback onPress={dismissKeyboard}>
                     <View style={styles.noContentContainer}>
@@ -297,6 +297,12 @@ export default class WatchListView extends Component {
 
                     if (watchListSymbolsCsv !== '') {
                         this._fetchDataRequest(watchListSymbolsCsv);
+                    }
+                    // no data has been loaded
+                    else {
+                        this.setState({
+                            loadingView: false
+                        });
                     }
                 }
             });
