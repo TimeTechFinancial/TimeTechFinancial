@@ -95,7 +95,7 @@ const AppTabNavigator = TabNavigator(
             showIcon: true,
             showLabel: false,
             style: {
-                height: 48,
+                height: 0,
                 overflow: 'hidden',
                 borderTopWidth: 0,
             },
