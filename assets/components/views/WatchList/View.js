@@ -222,7 +222,7 @@ export default class WatchListView extends Component {
         );
     }
 
-    _renderRow(rowData, sectionId, rowId) {
+    _renderRow(data, sectionId, rowId) {
         let stockTextColor = {
                 color: '#4CAF50'
             },
@@ -230,7 +230,7 @@ export default class WatchListView extends Component {
                 backgroundColor: '#4CAF50'
             };
 
-        if (rowData.Change < 0) {
+        if (data.Change < 0) {
             stockTextColor = {
                 color: '#F44336'
             };
@@ -241,23 +241,23 @@ export default class WatchListView extends Component {
 
         return (
             <TouchableWithoutFeedback onPress={() => {
-                this._editSymbol(rowData)
+                this._editSymbol(data)
             }}>
                 <View style={styles.stockContainer}>
                     <View style={styles.symbolContainer}>
                         <Text style={styles.symbolText}>
-                            {rowData.symbol}
+                            {data.symbol}
                         </Text>
                     </View>
                     <View style={styles.stockPriceInfoContainer}>
                         <View style={styles.currentPriceContainer}>
                             <Text style={[styles.currentPriceText, stockTextColor]}>
-                                {rowData.LastTradePriceOnly}
+                                {data.LastTradePriceOnly}
                             </Text>
                         </View>
                         <View style={[styles.changeContainer, stockBackgroundColor]}>
                             <Text style={[styles.changeText]}>
-                                {rowData.Change}
+                                {data.Change}
                             </Text>
                         </View>
                     </View>
@@ -294,6 +294,8 @@ export default class WatchListView extends Component {
                             watchListSymbolsCsv = watchListSymbolsCsv + ',' + watchListArray[i].symbol
                         }
                     }
+
+                    console.log('watchListArray', watchListArray);
 
                     if (watchListSymbolsCsv !== '') {
                         this._fetchDataRequest(watchListSymbolsCsv);
@@ -555,7 +557,7 @@ export default class WatchListView extends Component {
         }
     }
 
-    _editSymbol(rowData) {
+    _editSymbol(data) {
         let buttons = [
             'Remove Stock',
             'Cancel',
@@ -564,7 +566,7 @@ export default class WatchListView extends Component {
         let cancelIndex = 1;
 
         ActionSheetIOS.showActionSheetWithOptions({
-                message: rowData.symbol,
+                message: data.symbol,
                 options: buttons,
                 cancelButtonIndex: cancelIndex,
                 destructiveButtonIndex: destructiveIndex,
@@ -572,7 +574,7 @@ export default class WatchListView extends Component {
             (buttonIndex) => {
                 // remove stock from watchList
                 if (buttonIndex === 0) {
-                    this._removeStockSymbolFromStorage(rowData);
+                    this._removeStockSymbolFromStorage(data);
                 }
             });
     }
