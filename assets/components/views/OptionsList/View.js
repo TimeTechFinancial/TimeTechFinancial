@@ -33,7 +33,6 @@ export default class OptionsListView extends Component {
     }
 
     render() {
-
         return (
             <View style={styles.container}>
                 <ScrollView
@@ -45,6 +44,7 @@ export default class OptionsListView extends Component {
                     />
                     <OptionsListRowView
                         buttonText={"Trades"}
+                        onButtonPress={this._setTradesView.bind(this)}
                     />
                     <OptionsListRowView
                         buttonText={"Stock Data"}
@@ -65,5 +65,9 @@ export default class OptionsListView extends Component {
 
     _setWatchListView() {
         this.props.navigation.navigate('WatchListView');
+    }
+
+    _setTradesView() {
+        this.props.navigation.navigate('TradesView');
     }
 }

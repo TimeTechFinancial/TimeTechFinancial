@@ -36,15 +36,15 @@ export default class OptionsListRowView extends Component {
 
     render() {
         return (
-            <TouchableOpacity onPress={this.props.onButtonPress.bind(this)}>
-                <View style={styles.container}>
+            <View style={styles.container}>
+                <TouchableOpacity onPress={this.props.onButtonPress.bind(this)}>
                     <View style={styles.buttonContainer}>
                         <Text>
                             {this.props.buttonText}
                         </Text>
                     </View>
-                </View>
-            </TouchableOpacity>
+                </TouchableOpacity>
+            </View>
         );
     }
 }

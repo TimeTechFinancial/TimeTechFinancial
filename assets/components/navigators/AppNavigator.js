@@ -18,6 +18,7 @@ import dismissKeyboard from 'dismissKeyboard';
 import HeaderBackButtonView from 'HeaderBackButtonView';
 import OptionsListView from 'OptionsListView';
 import WatchListView from 'WatchListView';
+import TradesView from 'TradesView';
 
 const AppStorageActions = require('AppStorageActions');
 
@@ -40,6 +41,14 @@ const HomeNavigator = StackNavigator(
             navigationOptions: {
                 title: 'Watch List',
                 headerTitle: 'Watch List',
+                headerBackTitle: null,
+            },
+        },
+        TradesView: {
+            screen: TradesView,
+            navigationOptions: {
+                title: 'Trades',
+                headerTitle: 'Trades',
                 headerBackTitle: null,
             },
         },
