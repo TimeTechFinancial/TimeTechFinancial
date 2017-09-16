@@ -54,11 +54,11 @@ const HomeNavigator = StackNavigator(
                     height: 48 + (Platform.OS === 'ios' ? 20 : StatusBar.currentHeight),
                     paddingTop: (Platform.OS === 'ios' ? 20 : StatusBar.currentHeight),
                     elevation: 0,
-                    backgroundColor: '#FF55FF',
+                    backgroundColor: '#66ff8d',
                 },
                 headerTintColor: '#2e2e2e',
                 headerTitleStyle: {
-                    fontSize: 16,
+                    fontSize: 20,
                     fontWeight: '400',
                 },
                 headerLeft: (
@@ -79,7 +79,7 @@ const AppTabNavigator = TabNavigator(
                 tabBarLabel: 'Home',
             },
         },
-    },
+    }
     {
         swipeEnabled: false,
         animationEnabled: true,
