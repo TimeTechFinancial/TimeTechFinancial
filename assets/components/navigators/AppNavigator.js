@@ -32,6 +32,7 @@ const HomeNavigator = StackNavigator(
                 title: 'Time Tech Financial',
                 headerTitle: 'Time Tech Financial',
                 headerBackTitle: null,
+                headerLeft: null,
             },
         },
         WatchListView: {
@@ -46,7 +47,6 @@ const HomeNavigator = StackNavigator(
     {
         initialRouteName: 'OptionsListView',
         headerMode: 'screen',
-        mode: 'modal',
         navigationOptions: ({navigation}) => {
             return {
                 gesturesEnabled: false,
@@ -54,7 +54,7 @@ const HomeNavigator = StackNavigator(
                     height: 48 + (Platform.OS === 'ios' ? 20 : StatusBar.currentHeight),
                     paddingTop: (Platform.OS === 'ios' ? 20 : StatusBar.currentHeight),
                     elevation: 0,
-                    backgroundColor: '#EEEEEE',
+                    backgroundColor: '#FF55FF',
                 },
                 headerTintColor: '#2e2e2e',
                 headerTitleStyle: {
