@@ -79,7 +79,7 @@ const AppTabNavigator = TabNavigator(
                 tabBarLabel: 'Home',
             },
         },
-    }
+    },
     {
         swipeEnabled: false,
         animationEnabled: true,
