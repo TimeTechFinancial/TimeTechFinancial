@@ -131,7 +131,7 @@ export default class WatchListView extends Component {
             dataSourceKeys: null,
 
             // refs
-            refListView: View,
+            refListView: null,
 
             stockSymbol: '',
 
@@ -305,6 +305,12 @@ export default class WatchListView extends Component {
                         });
                     }
                 }
+                // no items have been added to watch list
+                else{
+                    this.setState({
+                        loadingView: false
+                    });
+                }
             });
         } catch (error) {
             AppStorageActions.emitter.emit('setError', 'Error Retrieving Watch List');
@@ -403,8 +409,6 @@ export default class WatchListView extends Component {
                 .end((err, res) => {
                     if (err) {
                         AppStorageActions.emitter.emit('setError', 'Error Connecting to Yahoo Finance');
-
-                        console.log(err);
 
                         this.setState({
                             loading: false,
