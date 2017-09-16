@@ -44,7 +44,19 @@ export default class OptionsListView extends Component {
                         onButtonPress={this._setWatchListView.bind(this)}
                     />
                     <OptionsListRowView
-                        buttonText={"Next Button Here"}
+                        buttonText={"Trades"}
+                    />
+                    <OptionsListRowView
+                        buttonText={"Stock Data"}
+                    />
+                    <OptionsListRowView
+                        buttonText={"Charts"}
+                    />
+                    <OptionsListRowView
+                        buttonText={"Notes"}
+                    />
+                    <OptionsListRowView
+                        buttonText={"Other"}
                     />
                 </ScrollView>
             </View>
