@@ -115,7 +115,7 @@ const AppTabNavigator = TabNavigator(
 );
 
 const statusBarHideArray = [
-    'OptionsListView'
+    'EmptyView'
 ];
 const statusBarLightStyleArray = [];
 
@@ -123,8 +123,8 @@ export default class AppNavigator extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            statusBarDisplay: false,
-            statusBarStyle: (Platform.OS === 'ios' ? 'dark-content' : 'light-content'),
+            statusBarDisplay: null,
+            statusBarStyle: null,
         };
     }
 
@@ -138,24 +138,24 @@ export default class AppNavigator extends Component {
                     if (prevScreen !== currentScreen) {
                         // check to see if currentScreen should display StatusBar
                         if (statusBarHideArray.indexOf(currentScreen) > -1) {
-                            if (this.state.statusBarDisplay === true) {
+                            if (this.state.statusBarDisplay !== false) {
                                 this.state.statusBarDisplay = false;
                                 AppStorageActions.emitter.emit('toggleStatusBarDisplay', false);
                             }
                         } else {
-                            if (this.state.statusBarDisplay === false) {
+                            if (this.state.statusBarDisplay !== true) {
                                 this.state.statusBarDisplay = true;
                                 AppStorageActions.emitter.emit('toggleStatusBarDisplay', true);
                             }
 
                             // set style of status bar
                             if (statusBarLightStyleArray.indexOf(currentScreen) > -1) {
-                                if (this.state.statusBarStyle === 'dark-content') {
+                                if (this.state.statusBarStyle !== 'light-content') {
                                     this.state.statusBarStyle = 'light-content';
                                     AppStorageActions.emitter.emit('toggleStatusBarStyle', 'light-content');
                                 }
                             } else {
-                                if (this.state.statusBarStyle === 'light-content') {
+                                if (this.state.statusBarStyle !== 'dark-content') {
                                     this.state.statusBarStyle = 'dark-content';
                                     AppStorageActions.emitter.emit('toggleStatusBarStyle', 'dark-content');
                                 }

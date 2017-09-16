@@ -32,10 +32,10 @@ const WIDTH = Dimensions.get('window').width;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#00F500'
+        backgroundColor: '#F5F5F5'
     },
     bodyContainer: {
-        backgroundColor: '#00F500'
+        backgroundColor: '#F5F5F5'
     },
     noContentContainer: {
         flex: 1,
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     },
     listViewContent: {
         overflow: 'hidden',
-        backgroundColor: '#00F500'
+        backgroundColor: '#F5F5F5'
     },
     stockContainer: {
         marginLeft: 14,

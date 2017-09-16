@@ -316,6 +316,7 @@ export default class AppView extends Component {
             // set search type to goals by default
             searchTypeFunction: null,
 
+            statusBarDisplayInit: true,
             statusBarDisplay: null, // true or false
             statusBarStyle: null, // options 'dark-content', 'light-content'
 
@@ -399,13 +400,6 @@ export default class AppView extends Component {
 
         this.setState(nextState);
 
-        if (this.state.statusBarDisplay) {
-            StatusBar.setHidden(false, 'none');
-        }
-        else {
-            StatusBar.setHidden(true, 'none');
-        }
-
         if (Platform.OS === 'android') {
             UIManager.setLayoutAnimationEnabledExperimental && UIManager.setLayoutAnimationEnabledExperimental(true);
         }
@@ -413,7 +407,7 @@ export default class AppView extends Component {
 
     componentWillUpdate(nextProps, nextState) {
         if (this.state.statusBarDisplay !== nextState.statusBarDisplay) {
-            if (nextState.statusBarDisplay) {
+            if (nextState.statusBarDisplay === true) {
                 StatusBar.setHidden(false, 'none');
             }
             else {
@@ -731,7 +725,7 @@ export default class AppView extends Component {
         return (
             <View style={styles.container}>
                 <StatusBar
-                    hidden={true}
+                    hidden={(this.state.statusBarDisplayInit !== true)}
                     backgroundColor={'rgba(0,0,0,0.15)'}
                     translucent={true}
                     showHideTransition={'fade'}
@@ -925,6 +919,8 @@ export default class AppView extends Component {
     }
 
     _toggleStatusBarDisplay(data) {
+        console.log('_toggleStatusBarDisplay', data);
+
         this.setState({
             statusBarDisplay: data
         });
