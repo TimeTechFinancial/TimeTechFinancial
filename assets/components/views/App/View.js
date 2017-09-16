@@ -919,8 +919,6 @@ export default class AppView extends Component {
     }
 
     _toggleStatusBarDisplay(data) {
-        console.log('_toggleStatusBarDisplay', data);
-
         this.setState({
             statusBarDisplay: data
         });

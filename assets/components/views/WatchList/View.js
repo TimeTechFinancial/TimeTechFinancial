@@ -11,6 +11,7 @@ import React, {
 import {
     ActionSheetIOS,
     AsyncStorage,
+    InteractionManager,
     ListView,
     RefreshControl,
     StyleSheet,
@@ -24,7 +25,10 @@ import TextInputLabelView from 'TextInputLabelView';
 
 const Request = require('superagent');
 const ApiConstants = require('ApiConstants');
+const AsyncStorageKeys = require('AsyncStorageKeys');
+
 const AppStorageActions = require('AppStorageActions');
+const WatchListStorageActions = require('WatchListStorageActions');
 
 const Dimensions = require('Dimensions');
 const WIDTH = Dimensions.get('window').width;
@@ -38,7 +42,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#F5F5F5'
     },
     noContentContainer: {
-        flex: 1,
+        flex: 1, height: 200,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -49,15 +53,6 @@ const styles = StyleSheet.create({
         fontWeight: '300',
         color: '#000000',
         opacity: 0.54,
-    },
-
-    stockSymbolTextInput: {
-        width: WIDTH, height: 40,
-        borderColor: '#EBEBEB',
-        borderWidth: 1,
-        padding: 14,
-        textAlign: "center",
-        fontSize: 14,
     },
 
     listViewContentContainer: {
@@ -124,31 +119,62 @@ export default class WatchListView extends Component {
 
             loadingView: true,
             loading: false,
-
-            hasMorePages: true,
-            loadDate: null,
-            cursor: null,
             data: null,
             dataSource: new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2}),
-            dataSourceKeys: null,
+
+            runAfterTransitionTimeout: 0,
+            closingView: false,
 
             // refs
             refListView: null,
 
-            stockSymbol: '',
+            newStockSymbol: '',
+
+            // emitters
+            watchListLoadDate: Date.now(),
+            watchListLoadDateListener: null,
 
             // requests
-            fetchDataRequestObject: null,
+            addNewStockSymbolRequestObject: null,
         };
     }
 
     componentWillMount() {
-        this._fetchData();
+        this.state.watchListLoadDateListener = WatchListStorageActions.emitter.addListener('watchListLoadDate', (loadDate) => {
+            if (this.state.watchListLoadDate !== loadDate) {
+                this.state.watchListLoadDate = loadDate;
+
+                this._getWatchListData();
+            }
+        });
+
+        this._getWatchListData().then(() => {
+            // run after scene transition - set timeout to make sure function is called if animations hang
+            let called = false;
+            this.state.runAfterTransitionTimeout = setTimeout(() => {
+                called = true;
+                this._runAfterTransition();
+            }, 500);
+            InteractionManager.runAfterInteractions(() => {
+                if (called) return;
+                clearTimeout(this.state.runAfterTransitionTimeout);
+                this._runAfterTransition();
+            });
+        });
     }
 
     componentWillUnmount() {
-        if (this.state.fetchDataRequestObject) {
-            this.state.fetchDataRequestObject.abort();
+        this.state.closingView = true;
+        clearTimeout(this.state.runAfterTransitionTimeout);
+
+        // remove emitter listeners
+        if (this.state.watchListLoadDateListener) {
+            this.state.watchListLoadDateListener.remove();
+        }
+
+        // abort active requests
+        if (this.state.addNewStockSymbolRequestObject) {
+            this.state.addNewStockSymbolRequestObject.abort();
         }
     }
 
@@ -166,47 +192,36 @@ export default class WatchListView extends Component {
         }
         else {
             listViewContent =
-                <TouchableWithoutFeedback onPress={dismissKeyboard}>
-                    <View style={styles.noContentContainer}>
-                        <Text style={styles.noContentText}>
-                            {"Your Watch List is Empty"}
-                        </Text>
-                    </View>
-                </TouchableWithoutFeedback>
+                <ListView
+                    ref={(listView) => {
+                        this.state.refListView = listView;
+                    }}
+                    style={styles.listViewContent}
+                    contentContainerStyle={[styles.listViewContentContainer]}
+                    dataSource={this.state.dataSource}
+                    renderRow={this._renderRow.bind(this)}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={this.state.refreshing}
+                            onRefresh={this._onRefresh.bind(this)}
+                        />
+                    }
+                    onEndReachedThreshold={24}
+                    scrollsToTop={false}
+                    scrollEventThrottle={10}
+                    initialListSize={24}
+                />
             ;
-            if (this.state.data) {
-                listViewContent =
-                    <ListView
-                        ref={(listView) => {
-                            this.state.refListView = listView;
-                        }}
-                        style={styles.listViewContent}
-                        contentContainerStyle={[styles.listViewContentContainer]}
-                        dataSource={this.state.dataSource}
-                        renderRow={this._renderRow.bind(this)}
-                        refreshControl={
-                            <RefreshControl
-                                refreshing={this.state.refreshing}
-                                onRefresh={this._onRefresh.bind(this)}
-                            />
-                        }
-                        onEndReachedThreshold={24}
-                        scrollsToTop={false}
-                        scrollEventThrottle={10}
-                        initialListSize={24}
-                    />
-                ;
-            }
         }
 
         return (
             <View style={styles.container}>
                 <View style={styles.bodyContainer}>
                     <TextInputLabelView
-                        value={this.state.stockSymbol}
+                        value={this.state.newStockSymbol}
                         valueUpdated={(value) => {
                             this.setState({
-                                stockSymbol: value,
+                                newStockSymbol: value,
                             });
                         }}
                         textInputLabel={"Enter Stock Symbol"}
@@ -225,168 +240,166 @@ export default class WatchListView extends Component {
     }
 
     _renderRow(data, sectionId, rowId) {
-        let stockTextColor = {
-                color: '#4CAF50'
-            },
-            stockBackgroundColor = {
-                backgroundColor: '#4CAF50'
-            };
+        if (typeof data !== 'undefined') {
+            if (typeof data.emptyList !== 'undefined') {
+                return (
+                    <TouchableWithoutFeedback onPress={dismissKeyboard}>
+                        <View style={styles.noContentContainer}>
+                            <Text style={styles.noContentText}>
+                                {"Your Watch List is Empty"}
+                            </Text>
+                        </View>
+                    </TouchableWithoutFeedback>
+                );
+            }
+            else {
+                let stockTextColor = {
+                        color: '#4CAF50'
+                    },
+                    stockBackgroundColor = {
+                        backgroundColor: '#4CAF50'
+                    };
 
-        if (data.Change < 0) {
-            stockTextColor = {
-                color: '#F44336'
-            };
-            stockBackgroundColor = {
-                backgroundColor: '#F44336'
-            };
+                if (data.Change < 0) {
+                    stockTextColor = {
+                        color: '#F44336'
+                    };
+                    stockBackgroundColor = {
+                        backgroundColor: '#F44336'
+                    };
+                }
+
+                return (
+                    <TouchableWithoutFeedback onPress={() => {
+                        this._editSymbol(data)
+                    }}>
+                        <View style={styles.stockContainer}>
+                            <View style={styles.symbolContainer}>
+                                <Text style={styles.symbolText}>
+                                    {data.symbol}
+                                </Text>
+                            </View>
+                            <View style={styles.stockPriceInfoContainer}>
+                                <View style={styles.currentPriceContainer}>
+                                    <Text style={[styles.currentPriceText, stockTextColor]}>
+                                        {data.liveData.lastTradePriceOnly}
+                                    </Text>
+                                </View>
+                                <View style={[styles.changeContainer, stockBackgroundColor]}>
+                                    <Text style={[styles.changeText]}>
+                                        {data.liveData.change}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </TouchableWithoutFeedback>
+                );
+            }
+        }
+        else {
+            return null;
+        }
+    }
+
+    _runAfterTransition() {
+        if (this.state.closingView === false) {
+            if (this.state.data !== null) {
+                this.setState({
+                    loading: false,
+                    loadingView: false,
+                });
+            }
+            // no items have been added to watch list
+            else {
+                this.setState({
+                    loading: false,
+                    loadingView: false,
+                });
+            }
+        }
+    }
+
+    _setDataSource(data) {
+        let newData = data.slice(0);
+
+        if (data.length === 0) {
+            newData = newData.concat([{
+                emptyList: true,
+                loadDate: Date.now(),
+            }]);
         }
 
-        return (
-            <TouchableWithoutFeedback onPress={() => {
-                this._editSymbol(data)
-            }}>
-                <View style={styles.stockContainer}>
-                    <View style={styles.symbolContainer}>
-                        <Text style={styles.symbolText}>
-                            {data.symbol}
-                        </Text>
-                    </View>
-                    <View style={styles.stockPriceInfoContainer}>
-                        <View style={styles.currentPriceContainer}>
-                            <Text style={[styles.currentPriceText, stockTextColor]}>
-                                {data.LastTradePriceOnly}
-                            </Text>
-                        </View>
-                        <View style={[styles.changeContainer, stockBackgroundColor]}>
-                            <Text style={[styles.changeText]}>
-                                {data.Change}
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-            </TouchableWithoutFeedback>
-        );
+        return newData;
+    }
+
+    _getWatchListData() {
+        return new Promise((resolve, reject) => {
+            try {
+                let keys = [
+                    AsyncStorageKeys.WatchListData,
+                ];
+
+                AsyncStorage.multiGet(keys, (err, stores) => {
+                    let nextState = {
+                        data: null,
+                    };
+
+                    stores.map((result, i, store) => {
+                        // get at each store's key/value so you can work with it
+                        let key = store[i][0];
+                        let value = store[i][1];
+                        let parseValue = JSON.parse(value);
+
+                        if (value !== null) {
+                            switch (key) {
+                                case AsyncStorageKeys.WatchListData:
+                                    nextState.data = parseValue;
+                                    break;
+                            }
+                        }
+                    });
+
+
+                    if (nextState.data !== null) {
+                        let ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2}),
+                            dataSource = this._setDataSource(nextState.data);
+
+                        nextState.dataSource = ds.cloneWithRows(dataSource);
+                    }
+
+                    this.setState(nextState);
+
+                    return resolve();
+                });
+            } catch (error) {
+                // do nothing if error exists on load, since data will be null and a fetchData will be loaded
+                return resolve();
+            }
+        });
     }
 
     _onRefresh() {
-        if (this.loading === false && this.refreshing === false) {
+        if (this.state.loading === false && this.state.refreshing === false) {
             this.setState({
                 refreshing: true,
             });
 
-            this._fetchData();
-        }
-    }
-
-    _fetchData() {
-        try {
-            AsyncStorage.getItem('@WatchList:key', (err, value) => {
-                // Load watch list from WatchList:key
-                if (value !== null) {
-                    // Parse saved WatchList array to JSON object.
-                    let watchListArray = JSON.parse(value),
-                        watchListSymbolsCsv = '';
-
-                    // populate array of symbols to load from yahoo
-                    for (let i = 0; i < watchListArray.length; i++) {
-                        if (i === 0) {
-                            watchListSymbolsCsv = watchListArray[i].symbol
-                        }
-                        else {
-                            watchListSymbolsCsv = watchListSymbolsCsv + ',' + watchListArray[i].symbol
-                        }
-                    }
-
-                    if (watchListSymbolsCsv !== '') {
-                        this._fetchDataRequest(watchListSymbolsCsv);
-                    }
-                    // no data has been loaded
-                    else {
-                        this.setState({
-                            loadingView: false
-                        });
-                    }
-                }
-                // no items have been added to watch list
-                else{
+            WatchListStorageActions.refreshLiveData()
+                .then(() => {
                     this.setState({
-                        loadingView: false
+                        refreshing: false,
                     });
-                }
-            });
-        } catch (error) {
-            AppStorageActions.emitter.emit('setError', 'Error Retrieving Watch List');
-        }
-    }
-
-    _fetchDataRequest(symbols) {
-        // prevent overloading
-        if (this.state.loading) {
-            return false;
-        }
-
-        this.setState({
-            loading: true,
-        });
-
-        // on load - this endpoint loads either Recent Activity or Profile List for user
-        let requestURL = 'https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22' + symbols + '%22)%0A%09%09&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
-
-        this.state.fetchDataRequestObject =
-            Request
-                .get(requestURL)
-                .timeout(ApiConstants.TIMEOUT)
-                .end((err, res) => {
-                    if (err) {
-                        AppStorageActions.emitter.emit('setError', 'Error Connecting to Yahoo Finance');
-
-                        // error loading - display reload
-                        this.setState({
-                            refreshing: false,
-                            loadingView: false,
-                            loading: false,
-                            reload: true,
-                            reloadFunction: this._fetchDataRequest,
-                            reloadData: symbols,
-                        });
-                    }
-                    else if (res) {
-                        let data = res.body.query.results.quote;
-
-                        if (Array.isArray(data)) {
-
-                        }
-                        else {
-                            data = [res.body.query.results.quote];
-                        }
-
-                        this.setState({
-                            data: data,
-                            dataSource: this.state.dataSource.cloneWithRows(data),
-                            refreshing: false,
-                            loadingView: false,
-                            loading: false,
-                            stockSymbol: '',
-                        });
-                    }
-                    else {
-                        AppStorageActions.emitter.emit('setError', 'Error Saving Data');
-
-                        // error loading - display reload
-                        this.setState({
-                            refreshing: false,
-                            loadingView: false,
-                            loading: false,
-                            reload: true,
-                            reloadFunction: this._fetchDataRequest,
-                            reloadData: symbols,
-                        });
-                    }
+                })
+                .catch(() => {
+                    this.setState({
+                        refreshing: false,
+                    });
                 });
+        }
     }
 
     _addNewStockSymbol() {
-        if (this.state.stockSymbol === null || this.state.stockSymbol === '') {
+        if (this.state.newStockSymbol === null || this.state.newStockSymbol === '') {
             AppStorageActions.emitter.emit('setError', 'Please Enter a Stock Symbol');
 
             return false;
@@ -402,9 +415,9 @@ export default class WatchListView extends Component {
         });
 
         // on load - this endpoint loads either Recent Activity or Profile List for user
-        let requestURL = 'https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22' + this.state.stockSymbol + '%22)%0A%09%09&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
+        let requestURL = 'https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(%22' + this.state.newStockSymbol + '%22)%0A%09%09&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys';
 
-        this.state.fetchDataRequestObject =
+        this.state.addNewStockSymbolRequestObject =
             Request
                 .get(requestURL)
                 .timeout(ApiConstants.TIMEOUT)
@@ -419,142 +432,26 @@ export default class WatchListView extends Component {
                     else if (res) {
                         let data = res.body.query.results.quote;
 
-                        if (data.LastTradePriceOnly) {
-                            this._addStockSymbolToStorage(data);
-                        }
-                        else {
-                            AppStorageActions.emitter.emit('setError', 'Invalid Stock Symbol');
+                        WatchListStorageActions.insertData(data)
+                            .then(() => {
+                                // successfully added new stock to watch list
+                                WatchListStorageActions.emitter.emit('watchListLoadDate', Date.now());
 
-                            this.setState({
-                                loading: false,
+                                this.setState({
+                                    loading: false,
+                                    newStockSymbol: '',
+                                });
+                            })
+                            .catch((errorMessage) => {
+                                // an error occured when trying to add stock symbol to local storage
+                                AppStorageActions.emitter.emit('setError', errorMessage);
+
+                                this.setState({
+                                    loading: false,
+                                });
                             });
-                        }
                     }
                 });
-    }
-
-    _addStockSymbolToStorage(data) {
-        try {
-            AsyncStorage.getItem('@WatchList:key', (err, value) => {
-                // Add new data to top of watch list if WatchList:key exists.
-                if (value !== null) {
-                    // Parse saved WatchList array to JSON object.
-                    let watchListArray = JSON.parse(value),
-                        symbolExists = false;
-
-                    // search array to make sure user has not already added this stock symbol
-                    for (let i = 0; i < watchListArray.length; i++) {
-                        if (watchListArray[i].symbol === data.symbol) {
-                            symbolExists = true;
-
-                            break;
-                        }
-                    }
-
-                    // Symbol already exists so no need to add it to watchListArray
-                    if (symbolExists) {
-                        AppStorageActions.emitter.emit('setNotification', 'This Symbol Has Already Been Added');
-
-                        this.setState({
-                            loading: false,
-                            stockSymbol: '',
-                        });
-                    }
-                    else {
-                        // Add new symbol data to the top of the array.
-                        watchListArray.unshift(data);
-
-                        // Prepare data to be saved by converting JSON object back to string.
-                        let stringifyData = JSON.stringify(watchListArray);
-
-                        AsyncStorage.setItem('@WatchList:key', stringifyData, (error) => {
-                            this.setState({
-                                loading: false,
-                                stockSymbol: '',
-                            });
-
-                            // update all watch list stock symbols on save
-                            this._fetchData();
-                        });
-                    }
-                }
-                // WatchList:key does not exist, so set using an empty array.
-                else {
-                    try {
-                        let stringifyData = JSON.stringify([data]);
-
-                        AsyncStorage.setItem('@WatchList:key', stringifyData, (error) => {
-                            this.setState({
-                                loading: false,
-                                stockSymbol: '',
-                            });
-
-                            // update all watch list stock symbols on save
-                            this._fetchData();
-                        });
-                    } catch (error) {
-                        AppStorageActions.emitter.emit('setError', 'Error Saving Watch List');
-
-                        this.setState({
-                            loading: false,
-                        });
-                    }
-                }
-            });
-        } catch (error) {
-            AppStorageActions.emitter.emit('setError', 'Error Retrieving Watch List');
-
-            this.setState({
-                loading: false,
-            });
-        }
-    }
-
-    _removeStockSymbolFromStorage(data) {
-        try {
-            AsyncStorage.getItem('@WatchList:key', (err, value) => {
-                // Add new data to top of watch list if WatchList:key exists.
-                if (value !== null) {
-                    // Parse saved WatchList array to JSON object.
-                    let watchListArray = JSON.parse(value),
-                        symbolExists = false;
-
-                    // search array to remove symbol
-                    for (let i = 0; i < watchListArray.length; i++) {
-                        if (watchListArray[i].symbol === data.symbol) {
-                            symbolExists = true;
-                            watchListArray.splice(i, 1);
-
-                            break;
-                        }
-                    }
-
-                    // Symbol exists so symbol was removed from watchListArray
-                    if (symbolExists) {
-                        // Prepare data to be saved by converting JSON object back to string.
-                        let stringifyData = JSON.stringify(watchListArray);
-
-                        AsyncStorage.setItem('@WatchList:key', stringifyData, (error) => {
-                            // update data and dataSource with new watchListArray data
-                            if (watchListArray.length > 0) {
-                                this.setState({
-                                    data: watchListArray,
-                                    dataSource: this.state.dataSource.cloneWithRows(watchListArray),
-                                });
-                            }
-                            else {
-                                this.setState({
-                                    data: null,
-                                    dataSource: this.state.dataSource.cloneWithRows([]),
-                                });
-                            }
-                        });
-                    }
-                }
-            });
-        } catch (error) {
-            AppStorageActions.emitter.emit('setError', 'Error Retrieving Watch List');
-        }
     }
 
     _editSymbol(data) {
@@ -574,7 +471,15 @@ export default class WatchListView extends Component {
             (buttonIndex) => {
                 // remove stock from watchList
                 if (buttonIndex === 0) {
-                    this._removeStockSymbolFromStorage(data);
+                    WatchListStorageActions.removeFromData(data)
+                        .then(() => {
+                            // successfully added new stock to watch list
+                            WatchListStorageActions.emitter.emit('watchListLoadDate', Date.now());
+                        })
+                        .catch((errorMessage) => {
+                            // an error occured when trying to add stock symbol to local storage
+                            AppStorageActions.emitter.emit('setError', errorMessage);
+                        });
                 }
             });
     }
