@@ -295,8 +295,6 @@ export default class WatchListView extends Component {
                         }
                     }
 
-                    console.log('watchListArray', watchListArray);
-
                     if (watchListSymbolsCsv !== '') {
                         this._fetchDataRequest(watchListSymbolsCsv);
                     }

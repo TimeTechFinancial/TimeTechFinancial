@@ -29,7 +29,9 @@ const HomeNavigator = StackNavigator(
             screen: OptionsListView,
             path: '/article/:articleId',
             navigationOptions: {
-                header: null,
+                title: 'Time Tech Financial',
+                headerTitle: 'Time Tech Financial',
+                headerBackTitle: null,
             },
         },
         WatchListView: {
