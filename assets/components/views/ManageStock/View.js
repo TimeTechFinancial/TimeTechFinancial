@@ -387,7 +387,8 @@ export default class ManageStockView extends Component {
             ;
         }
 
-        let liveDataContainer;
+        let liveDataContainer,
+            additionalLiveDataContainer;
 
         if (this.state.liveData) {
             let stockTextColor = {
@@ -500,6 +501,81 @@ export default class ManageStockView extends Component {
                     {investmentProfitsView}
                 </View>
             ;
+
+            additionalLiveDataContainer =
+                <View style={styles.liveDataContainer}>
+                    <View style={styles.investmentContainer}>
+                        <View style={styles.investmentTitleContainer}>
+                            <Text style={styles.investmentTitleText}>
+                                {'Days Low'}
+                            </Text>
+                        </View>
+                        <View style={styles.investmentValueInfoContainer}>
+                            <View style={styles.investmentValueContainer}>
+                                <Text style={[styles.investmentValueText]}>
+                                    {this.state.liveData.daysLow}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                    <View style={styles.investmentContainer}>
+                        <View style={styles.investmentTitleContainer}>
+                            <Text style={styles.investmentTitleText}>
+                                {'Days High'}
+                            </Text>
+                        </View>
+                        <View style={styles.investmentValueInfoContainer}>
+                            <View style={styles.investmentValueContainer}>
+                                <Text style={[styles.investmentValueText]}>
+                                    {this.state.liveData.daysHigh}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                    <View style={styles.investmentContainer}>
+                        <View style={styles.investmentTitleContainer}>
+                            <Text style={styles.investmentTitleText}>
+                                {'Open'}
+                            </Text>
+                        </View>
+                        <View style={styles.investmentValueInfoContainer}>
+                            <View style={styles.investmentValueContainer}>
+                                <Text style={[styles.investmentValueText]}>
+                                    {this.state.liveData.open}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                    <View style={styles.investmentContainer}>
+                        <View style={styles.investmentTitleContainer}>
+                            <Text style={styles.investmentTitleText}>
+                                {'Previous Close'}
+                            </Text>
+                        </View>
+                        <View style={styles.investmentValueInfoContainer}>
+                            <View style={styles.investmentValueContainer}>
+                                <Text style={[styles.investmentValueText]}>
+                                    {this.state.liveData.previousClose}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                    <View style={styles.investmentContainer}>
+                        <View style={styles.investmentTitleContainer}>
+                            <Text style={styles.investmentTitleText}>
+                                {'Volume'}
+                            </Text>
+                        </View>
+                        <View style={styles.investmentValueInfoContainer}>
+                            <View style={styles.investmentValueContainer}>
+                                <Text style={[styles.investmentValueText]}>
+                                    {this.state.liveData.volume}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+            ;
         }
 
 
@@ -604,6 +680,7 @@ export default class ManageStockView extends Component {
                             </View>
                         </View>
                     </TouchableWithoutFeedback>
+                    {additionalLiveDataContainer}
                 </ScrollView>
             </View>
         );

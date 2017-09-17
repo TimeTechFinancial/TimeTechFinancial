@@ -53,7 +53,7 @@ module.exports = {
 
     setLiveData: function (data) {
         return {
-            change: data.Change + '',
+            change: data.PercentChange + '',
             daysLow: parseFloat(data.DaysLow),
             daysHigh: parseFloat(data.DaysHigh),
             lastTradeDate: data.LastTradeDate + '',
@@ -206,7 +206,7 @@ module.exports = {
                             if (obj.symbol === storageObj.symbol) {
                                 // update live data for symbol
                                 if (storageObj.liveData) {
-                                    if (obj.Change &&
+                                    if (obj.PercentChange &&
                                         obj.DaysLow &&
                                         obj.DaysHigh &&
                                         obj.LastTradeDate &&
@@ -301,7 +301,7 @@ module.exports = {
                                 }
                             }
 
-                            if (data.Change &&
+                            if (data.PercentChange &&
                                 data.DaysLow &&
                                 data.DaysHigh &&
                                 data.LastTradeDate &&
