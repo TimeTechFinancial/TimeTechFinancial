@@ -453,7 +453,9 @@ export default class WatchListView extends Component {
                 });
     }
 
-    _manageStock() {
-        this.props.navigation.navigate('ManageStockView');
+    _manageStock(data) {
+        this.props.navigation.navigate('ManageStockView', {
+            symbol: data.symbol,
+        });
     }
 }

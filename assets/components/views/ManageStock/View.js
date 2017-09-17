@@ -10,6 +10,8 @@ import React, {
 } from 'react';
 import {
     ActionSheetIOS,
+    AsyncStorage,
+    InteractionManager,
     Keyboard,
     ScrollView,
     StyleSheet,
@@ -22,6 +24,8 @@ const Dimensions = require('Dimensions');
 const HEIGHT = Dimensions.get('window').height;
 
 import TextInputLabelView from 'TextInputLabelView';
+
+const AsyncStorageKeys = require('AsyncStorageKeys');
 
 const AppStorageActions = require('AppStorageActions');
 const WatchListStorageActions = require('WatchListStorageActions');
@@ -96,8 +100,36 @@ const styles = StyleSheet.create({
 export default class ManageStockView extends Component {
     constructor(props) {
         super(props);
+
+        let stateProps = this.props.navigation.state.params;
+
         this.state = {
+            // passed props
+            symbol: stateProps.symbol,
+
+            liveData: null,
+
+            buyInDate: '',
+            buyInPrice: '',
+            notes: '',
+            sector: '',
+            shares: '',
+            buyInDateOriginal: '',
+            buyInPriceOriginal: '',
+            notesOriginal: '',
+            sectorOriginal: '',
+            sharesOriginal: '',
+
+            loadingView: true,
+            loading: false,
+
+            runAfterTransitionTimeout: 0,
+            closingView: false,
+
             refListView: null,
+
+            rightButtonState: null,
+            rightButtonStateTimestamp: 0,
 
             textInputPressPosition: 0,
             scrollPosition: 0,
@@ -108,6 +140,12 @@ export default class ManageStockView extends Component {
     }
 
     componentWillMount() {
+        this.state.setHeaderSaveListener = AppStorageActions.emitter.addListener('setHeaderSave', (rightButtonStateTimestamp) => {
+            if (this.state.rightButtonStateTimestamp === rightButtonStateTimestamp) {
+                this._setUpdateStockUserData();
+            }
+        });
+
         this.state.keyboardWillChangeFrameListener = Keyboard.addListener('keyboardWillChangeFrame', (e) => {
             if (this.state.keyboardHeight !== e.endCoordinates.height) {
                 this.state.keyboardHeight = e.endCoordinates.height;
@@ -137,9 +175,73 @@ export default class ManageStockView extends Component {
                 }
             }
         });
+
+        this._getWatchListSymbolData().then(() => {
+            // run after scene transition - set timeout to make sure function is called if animations hang
+            let called = false;
+            this.state.runAfterTransitionTimeout = setTimeout(() => {
+                called = true;
+                this._runAfterTransition();
+            }, 500);
+            InteractionManager.runAfterInteractions(() => {
+                if (called) return;
+                clearTimeout(this.state.runAfterTransitionTimeout);
+                this._runAfterTransition();
+            });
+        });
+    }
+
+    componentWillUpdate(nextProps, nextState) {
+        if (this.state.buyInDate !== nextState.buyInDate ||
+            this.state.buyInPrice !== nextState.buyInPrice ||
+            this.state.notes !== nextState.notes ||
+            this.state.sector !== nextState.sector ||
+            this.state.shares !== nextState.shares
+        ) {
+            if (nextState.buyInDate !== nextState.buyInDateOriginal ||
+                nextState.buyInPrice !== nextState.buyInPriceOriginal ||
+                nextState.notes !== nextState.notesOriginal ||
+                nextState.sector !== nextState.sectorOriginal ||
+                nextState.shares !== nextState.sharesOriginal
+            ) {
+                if (nextState.rightButtonState !== 'save' && nextState.loading === false) {
+                    let currentDate = Date.now();
+
+                    nextProps.navigation.setParams({
+                        rightButtonState: 'save',
+                        rightButtonStateTimestamp: currentDate,
+                    });
+
+                    this.setState({
+                        rightButtonState: 'save',
+                        rightButtonStateTimestamp: currentDate,
+                    });
+                }
+            }
+            else if (
+                nextState.buyInDate === nextState.buyInDateOriginal &&
+                nextState.buyInPrice === nextState.buyInPriceOriginal &&
+                nextState.notes === nextState.notesOriginal &&
+                nextState.sector === nextState.sectorOriginal &&
+                nextState.shares === nextState.sharesOriginal
+            ) {
+                if (nextState.rightButtonState !== null && nextState.loading === false) {
+                    nextProps.navigation.setParams({
+                        rightButtonState: null,
+                    });
+
+                    this.setState({
+                        rightButtonState: null,
+                    });
+                }
+            }
+        }
     }
 
     componentWillUnmount() {
+        this.state.closingView = true;
+        clearTimeout(this.state.runAfterTransitionTimeout);
+
         // remove keyboard listeners
         if (this.state.keyboardWillChangeFrameListener) {
             this.state.keyboardWillChangeFrameListener.remove();
@@ -198,6 +300,7 @@ export default class ManageStockView extends Component {
                         this.state.refListView = listView;
                     }}
                     style={styles.scrollViewContainer}
+                    scrollEventThrottle={8}
                     onScroll={this._onScroll.bind(this)}
                     removeClippedSubviews={false}
                 >
@@ -242,15 +345,15 @@ export default class ManageStockView extends Component {
                         disableReturn={true}
                     />
                     <TextInputLabelView
-                        value={this.state.note}
+                        value={this.state.notes}
                         valueUpdated={(value) => {
                             this.setState({
-                                note: value,
+                                notes: value,
                             });
                         }}
                         onPressNativeEvent={this._setTextInputPressPosition.bind(this)}
                         onTextInputLayoutChange={this._onTextInputLayoutChange.bind(this)}
-                        textInputLabel={"Note"}
+                        textInputLabel={"Notes"}
                         maxLength={255}
                     />
                     <TouchableWithoutFeedback onPress={this._editStock.bind(this)}>
@@ -267,6 +370,87 @@ export default class ManageStockView extends Component {
                 </ScrollView>
             </View>
         );
+    }
+
+    _runAfterTransition() {
+        if (this.state.closingView === false) {
+            if (this.state.data !== null) {
+                this.setState({
+                    loading: false,
+                    loadingView: false,
+                });
+            }
+            // no items have been added to watch list
+            else {
+                this.setState({
+                    loading: false,
+                    loadingView: false,
+                });
+            }
+        }
+    }
+
+    _getWatchListSymbolData() {
+        return new Promise((resolve, reject) => {
+            try {
+                let keys = [
+                    AsyncStorageKeys.WatchListData,
+                ];
+
+                AsyncStorage.multiGet(keys, (err, stores) => {
+                    let watchListStorage = {
+                        data: null,
+                    };
+
+                    stores.map((result, i, store) => {
+                        // get at each store's key/value so you can work with it
+                        let getKey = store[i][0];
+                        let value = store[i][1];
+                        let parseValue = JSON.parse(value);
+
+                        if (value !== null) {
+                            switch (getKey) {
+                                case AsyncStorageKeys.WatchListData:
+                                    watchListStorage.data = parseValue;
+                                    break;
+                            }
+                        }
+                    });
+
+                    if (watchListStorage.data) {
+                        // check to see if stock was already added to list before inserting
+                        for (let i = 0; i < watchListStorage.data.length; i++) {
+                            let obj = watchListStorage.data[i];
+
+                            if (obj.symbol === this.state.symbol) {
+                                let objUserData = obj.userData;
+
+                                this.setState({
+                                    liveData: obj.liveData,
+
+                                    buyInDate: (objUserData.buyInDate ? objUserData.buyInDate + '' : ''),
+                                    buyInPrice: (objUserData.buyInPrice ? objUserData.buyInPrice + '' : ''),
+                                    notes: (objUserData.notes ? objUserData.notes + '' : ''),
+                                    sector: (objUserData.sector ? objUserData.sector + '' : ''),
+                                    shares: (objUserData.shares ? objUserData.shares + '' : ''),
+                                    buyInDateOriginal: (objUserData.buyInDate ? objUserData.buyInDate + '' : ''),
+                                    buyInPriceOriginal: (objUserData.buyInPrice ? objUserData.buyInPrice + '' : ''),
+                                    notesOriginal: (objUserData.notes ? objUserData.notes + '' : ''),
+                                    sectorOriginal: (objUserData.sector ? objUserData.sector + '' : ''),
+                                    sharesOriginal: (objUserData.shares ? objUserData.shares + '' : ''),
+                                });
+                                break;
+                            }
+                        }
+                    }
+
+                    return resolve();
+                });
+            } catch (error) {
+                // do nothing if error exists on load, since data will be null and a fetchData will be loaded
+                return resolve();
+            }
+        });
     }
 
     _onScroll(e) {
@@ -326,5 +510,47 @@ export default class ManageStockView extends Component {
                         });
                 }
             });
+    }
+
+    _setUpdateStockUserData() {
+        WatchListStorageActions.updateDataObject({
+            symbol: this.state.symbol,
+            userData: {
+                buyInDate: this.state.buyInDate + '',
+                buyInPrice: parseFloat(this.state.buyInPrice),
+                notes: this.state.notes + '',
+                sector: this.state.sector + '',
+                shares: parseFloat(this.state.shares),
+            }
+        }).then(() => {
+            this.props.navigation.setParams({
+                rightButtonState: null,
+            });
+
+            this.setState({
+                loading: false,
+                rightButtonState: null,
+
+                buyInDateOriginal: this.state.buyInDate,
+                buyInPriceOriginal: this.state.buyInPrice,
+                notesOriginal: this.state.notes,
+                sectorOriginal: this.state.sector,
+                sharesOriginal: this.state.shares,
+            });
+
+            WatchListStorageActions.emitter.emit('watchListLoadDate', Date.now());
+        }).catch((errorMessage) => {
+            this.props.navigation.setParams({
+                rightButtonState: null,
+            });
+
+            this.setState({
+                loading: false,
+                rightButtonState: null,
+            });
+
+            // an error occured when trying to add stock symbol to local storage
+            AppStorageActions.emitter.emit('setError', errorMessage);
+        });
     }
 }

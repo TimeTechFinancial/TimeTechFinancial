@@ -9,12 +9,17 @@ import React, {
     Component,
 } from 'react';
 import {
+    LayoutAnimation,
     Platform,
     StatusBar,
 } from 'react-native';
 import {TabNavigator, TabBarBottom, StackNavigator} from 'react-navigation';
 import dismissKeyboard from 'dismissKeyboard';
+
 import HeaderBackButtonView from 'HeaderBackButtonView';
+import HeaderSaveButtonView from 'HeaderSaveButtonView';
+import HeaderLoadingButtonView from 'HeaderLoadingButtonView';
+
 import OptionsListView from 'OptionsListView';
 import WatchListView from 'WatchListView';
 import TradesView from 'TradesView';
@@ -22,6 +27,54 @@ import TradesView from 'TradesView';
 import ManageStockView from 'ManageStockView';
 
 const AppStorageActions = require('AppStorageActions');
+
+// use when a save button is needed for header
+const headerSaveNavigationOptions = (navigation, title, options = {}) => {
+    const {state} = navigation;
+
+    let headerRightButton = null,
+        rightButtonState = null
+    ;
+
+    if (state.params && state.params.rightButtonState) {
+        if (state.params.rightButtonState === 'save' && state.params.rightButtonStateTimestamp) {
+            LayoutAnimation.easeInEaseOut();
+
+            headerRightButton =
+                <HeaderSaveButtonView
+                    navigation={navigation}
+                    rightButtonStateTimestamp={state.params.rightButtonStateTimestamp}
+                />
+            ;
+            rightButtonState = state.params.rightButtonState;
+        }
+        else if (state.params.rightButtonState === 'loading') {
+            LayoutAnimation.easeInEaseOut();
+
+            dismissKeyboard();
+
+            headerRightButton =
+                <HeaderLoadingButtonView
+                    navigation={navigation}
+                />
+            ;
+            rightButtonState = state.params.rightButtonState;
+        }
+    }
+
+    options.title = title;
+    options.headerTitle = title;
+    options.headerBackTitle = null;
+    options.headerRight = headerRightButton;
+    options.headerLeft = (
+        <HeaderBackButtonView
+            navigation={navigation}
+            rightButtonState={rightButtonState}
+        />
+    );
+
+    return options;
+};
 
 const HomeNavigator = StackNavigator(
     {
@@ -53,10 +106,8 @@ const HomeNavigator = StackNavigator(
         },
         ManageStockView: {
             screen: ManageStockView,
-            navigationOptions: {
-                title: 'Manage Stock',
-                headerTitle: 'Manage Stock',
-                headerBackTitle: null,
+            navigationOptions: ({navigation}) => {
+                return headerSaveNavigationOptions(navigation, 'Manage Stock');
             },
         },
     },

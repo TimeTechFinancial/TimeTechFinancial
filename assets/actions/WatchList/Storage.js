@@ -36,6 +36,7 @@ const emitter = new EventEmitter();
         userData {
             buyInDate: string
             buyInPrice: number
+            notes: string
             sector: string
             shares: number
         }
@@ -313,10 +314,11 @@ module.exports = {
                                     symbol: data.Symbol,
                                     liveData: this.setLiveData(data),
                                     userData: {
-                                        buyInDate: null,
-                                        buyInPrice: null,
-                                        sector: null,
-                                        shares: null,
+                                        buyInDate: '',
+                                        buyInPrice: '',
+                                        notes: '',
+                                        sector: '',
+                                        shares: '',
                                     },
                                 };
 
@@ -390,20 +392,15 @@ module.exports = {
                         }
                     });
 
-                    let objToUpdate = [data.goal_id],
+                    let objToUpdate = [data.symbol],
                         updatedWatchListData = watchListStorage.data.slice(0);
 
                     // only updated passed parameters. Do not need to include whole object, just new data
                     for (let i = 0; i < updatedWatchListData.length; i++) {
-                        if (objToUpdate.indexOf(updatedWatchListData[i].goal_id) !== -1) {
-                            // set the goal name
-                            if (data.name) {
-                                updatedWatchListData[i].name = data.name;
-                            }
-
-                            // set privacy state
-                            if (data.privacy !== null) {
-                                updatedWatchListData[i].privacy = data.privacy;
+                        if (objToUpdate.indexOf(updatedWatchListData[i].symbol) !== -1) {
+                            // set the user data
+                            if (data.userData) {
+                                updatedWatchListData[i].userData = data.userData;
                             }
                         }
                     }
@@ -429,8 +426,13 @@ module.exports = {
 
                     if (setKeys.length > 0) {
                         AsyncStorage.multiSet(setKeys, (err) => {
+                            this.emitter.emit('watchListLoadDate', Date.now());
+
                             return resolve();
                         });
+                    }
+                    else {
+                        return resolve();
                     }
                 });
             } catch (error) {
