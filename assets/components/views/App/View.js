@@ -263,6 +263,23 @@ const styles = StyleSheet.create({
         bottom: 0, left: 0,
         backgroundColor: '#F5F5F5'
     },
+    pickerItemsClearContainer: {
+        height: 48,
+        position: 'absolute',
+        top: 0, left: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+    },
+    pickerItemsClearText: {
+        marginRight: 14,
+        marginLeft: 14,
+        fontSize: 15,
+        color: '#000000',
+        opacity: 0.54,
+        textAlign: 'right',
+        alignSelf: 'center',
+    },
     pickerItemsDoneContainer: {
         height: 48,
         position: 'absolute',
@@ -347,11 +364,16 @@ export default class AppView extends Component {
             datePickerCallback: () => {
             },
 
+            timePickerDisplay: false,
+            timePickerSelectedValue: null,
+            timePickerCallback: () => {
+            },
 
             // emitter listeners
             setActionSheetListener: null,
             setPickerListener: null,
             setDatePickerListener: null,
+            setTimePickerListener: null,
             toggleStatusBarDisplayListener: null,
             toggleStatusBarStyleListener: null,
             setNavigationListener: null,
@@ -365,6 +387,7 @@ export default class AppView extends Component {
         this._unsetActionSheetView = this._unsetActionSheetView.bind(this);
         this._unsetPickerView = this._unsetPickerView.bind(this);
         this._unsetDatePickerView = this._unsetDatePickerView.bind(this);
+        this._unsetTimePickerView = this._unsetTimePickerView.bind(this);
     }
 
     componentWillMount() {
@@ -377,6 +400,9 @@ export default class AppView extends Component {
         });
         this.state.setDatePickerListener = AppStorageActions.emitter.addListener('setDatePicker', (options, callback) => {
             this._setDatePickerView(options, callback);
+        });
+        this.state.setTimePickerListener = AppStorageActions.emitter.addListener('setTimePicker', (options, callback) => {
+            this._setTimePickerView(options, callback);
         });
         this.state.toggleStatusBarDisplayListener = AppStorageActions.emitter.addListener('toggleStatusBarDisplay', (data) => {
             this._toggleStatusBarDisplay(data);
@@ -430,6 +456,9 @@ export default class AppView extends Component {
         }
         if (this.state.setDatePickerListener) {
             this.state.setDatePickerListener.remove();
+        }
+        if (this.state.setTimePickerListener) {
+            this.state.setTimePickerListener.remove();
         }
         if (this.state.toggleStatusBarDisplayListener) {
             this.state.toggleStatusBarDisplayListener.remove();
@@ -492,14 +521,14 @@ export default class AppView extends Component {
 
         let actionSheetContainerView,
             actionSheetButtonsContainerView =
-                <TouchableWithoutFeedback onPress={this._unsetActionSheetView}>
+                <TouchableWithoutFeedback onPress={this._unsetActionSheetView.bind(this)}>
                     <View style={[styles.actionSheetButtonsContainer, {bottom: -120}]}/>
                 </TouchableWithoutFeedback>
         ;
 
         if (this.state.actionSheetDisplay) {
             actionSheetContainerView =
-                <TouchableWithoutFeedback onPress={this._unsetActionSheetView}>
+                <TouchableWithoutFeedback onPress={this._unsetActionSheetView.bind(this)}>
                     <View style={styles.actionSheetContainer}/>
                 </TouchableWithoutFeedback>
             ;
@@ -590,7 +619,7 @@ export default class AppView extends Component {
             if (this.state.actionSheetCancelButton) {
                 actionSheetCancelButton =
                     <TouchableOpacity
-                        onPress={this._unsetActionSheetView}
+                        onPress={this._unsetActionSheetView.bind(this)}
                         activeOpacity={0.5}
                     >
                         <View style={[styles.actionSheetCancelButton]}>
@@ -601,7 +630,7 @@ export default class AppView extends Component {
             }
 
             actionSheetButtonsContainerView =
-                <TouchableWithoutFeedback onPress={this._unsetActionSheetView}>
+                <TouchableWithoutFeedback onPress={this._unsetActionSheetView.bind(this)}>
                     <View style={styles.actionSheetButtonsContainer}>
                         <View style={styles.actionSheetButtonsContentContainer}>
                             {actionSheetTitleView}
@@ -618,14 +647,14 @@ export default class AppView extends Component {
 
         let pickerContainerView,
             pickerItemsContainerView =
-                <TouchableWithoutFeedback onPress={this._unsetPickerView}>
+                <TouchableWithoutFeedback onPress={this._unsetPickerView.bind(this)}>
                     <View style={[styles.pickerItemsContainer, {bottom: -248}]}/>
                 </TouchableWithoutFeedback>
         ;
 
         if (this.state.pickerDisplay) {
             pickerContainerView =
-                <TouchableWithoutFeedback onPress={this._unsetPickerView}>
+                <TouchableWithoutFeedback onPress={this._unsetPickerView.bind(this)}>
                     <View style={styles.pickerContainer}/>
                 </TouchableWithoutFeedback>
             ;
@@ -642,7 +671,7 @@ export default class AppView extends Component {
             pickerItemsContainerView =
                 <TouchableWithoutFeedback>
                     <View style={styles.pickerItemsContainer}>
-                        <TouchableOpacity activeOpacity={0.5} onPress={this._unsetPickerView}>
+                        <TouchableOpacity activeOpacity={0.5} onPress={this._unsetPickerView.bind(this)}>
                             <View style={styles.pickerItemsDoneContainer}>
                                 <Text style={styles.pickerItemsDoneText}>{"Done"}</Text>
                             </View>
@@ -671,14 +700,14 @@ export default class AppView extends Component {
 
         let datePickerContainerView,
             datePickerItemsContainerView =
-                <TouchableWithoutFeedback onPress={this._unsetDatePickerView}>
+                <TouchableWithoutFeedback onPress={this._unsetDatePickerView.bind(this)}>
                     <View style={[styles.pickerItemsContainer, {bottom: -248}]}/>
                 </TouchableWithoutFeedback>
         ;
 
         if (this.state.datePickerDisplay) {
             datePickerContainerView =
-                <TouchableWithoutFeedback onPress={this._unsetDatePickerView}>
+                <TouchableWithoutFeedback onPress={this._unsetDatePickerView.bind(this)}>
                     <View style={styles.pickerContainer}/>
                 </TouchableWithoutFeedback>
             ;
@@ -686,7 +715,12 @@ export default class AppView extends Component {
             datePickerItemsContainerView =
                 <TouchableWithoutFeedback>
                     <View style={styles.pickerItemsContainer}>
-                        <TouchableOpacity activeOpacity={0.5} onPress={this._unsetDatePickerView}>
+                        <TouchableOpacity activeOpacity={0.5} onPress={this._clearDatePickerView.bind(this)}>
+                            <View style={styles.pickerItemsClearContainer}>
+                                <Text style={styles.pickerItemsClearText}>{"Clear"}</Text>
+                            </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity activeOpacity={0.5} onPress={this._unsetDatePickerView.bind(this)}>
                             <View style={styles.pickerItemsDoneContainer}>
                                 <Text style={styles.pickerItemsDoneText}>{"Done"}</Text>
                             </View>
@@ -703,6 +737,54 @@ export default class AppView extends Component {
 
                                     if (this.state.datePickerCallback) {
                                         this.state.datePickerCallback(value);
+                                    }
+                                }}
+                            />
+                        </View>
+                    </View>
+                </TouchableWithoutFeedback>
+            ;
+        }
+
+        let timePickerContainerView,
+            timePickerItemsContainerView =
+                <TouchableWithoutFeedback onPress={this._unsetTimePickerView.bind(this)}>
+                    <View style={[styles.pickerItemsContainer, {bottom: -248}]}/>
+                </TouchableWithoutFeedback>
+        ;
+
+        if (this.state.timePickerDisplay) {
+            timePickerContainerView =
+                <TouchableWithoutFeedback onPress={this._unsetTimePickerView.bind(this)}>
+                    <View style={styles.pickerContainer}/>
+                </TouchableWithoutFeedback>
+            ;
+
+            timePickerItemsContainerView =
+                <TouchableWithoutFeedback>
+                    <View style={styles.pickerItemsContainer}>
+                        <TouchableOpacity activeOpacity={0.5} onPress={this._clearTimePickerView.bind(this)}>
+                            <View style={styles.pickerItemsClearContainer}>
+                                <Text style={styles.pickerItemsClearText}>{"Clear"}</Text>
+                            </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity activeOpacity={0.5} onPress={this._unsetTimePickerView.bind(this)}>
+                            <View style={styles.pickerItemsDoneContainer}>
+                                <Text style={styles.pickerItemsDoneText}>{"Done"}</Text>
+                            </View>
+                        </TouchableOpacity>
+                        <View style={styles.pickerItemsContentContainer}>
+                            <DatePickerIOS
+                                style={styles.datePicker}
+                                date={this.state.timePickerSelectedValue}
+                                mode={"time"}
+                                onDateChange={(value) => {
+                                    this.setState({
+                                        timePickerSelectedValue: value
+                                    });
+
+                                    if (this.state.timePickerCallback) {
+                                        this.state.timePickerCallback(value);
                                     }
                                 }}
                             />
@@ -753,6 +835,8 @@ export default class AppView extends Component {
                 {pickerItemsContainerView}
                 {datePickerContainerView}
                 {datePickerItemsContainerView}
+                {timePickerContainerView}
+                {timePickerItemsContainerView}
                 {statusBarBackgroundColor}
             </View>
         );
@@ -905,6 +989,24 @@ export default class AppView extends Component {
         this.setState(nextState);
     }
 
+    _clearDatePickerView() {
+        return new Promise((resolve, reject) => {
+            if (this.state.datePickerCallback) {
+                this.state.datePickerCallback(null);
+            }
+
+            LayoutAnimation.easeInEaseOut();
+
+            this.setState({
+                datePickerDisplay: false,
+                datePickerSelectedValue: null,
+            });
+
+            return resolve();
+        });
+
+    }
+
     _unsetDatePickerView() {
         return new Promise((resolve, reject) => {
             LayoutAnimation.easeInEaseOut();
@@ -912,6 +1014,66 @@ export default class AppView extends Component {
             this.setState({
                 datePickerDisplay: false,
                 datePickerSelectedValue: null,
+            });
+
+            return resolve();
+        });
+    }
+
+    _setTimePickerView(options, callback) {
+        if (Platform.OS === 'android' && this.state.setBackHandlerListener === null) {
+            this.state.setBackHandlerListener = BackHandler.addEventListener('hardwareBackPress', () => {
+                if (this.state && this.state.pickerDisplay) {
+                    this._unsetTimePickerView();
+                    return true;
+                }
+
+                return false;
+            });
+        }
+
+        let nextState = {
+            timePickerDisplay: true,
+        };
+
+        if (options.selectedValue) {
+            nextState.timePickerSelectedValue = options.selectedValue;
+        }
+
+        if (callback !== null) {
+            nextState.timePickerCallback = callback;
+        }
+
+        LayoutAnimation.easeInEaseOut();
+
+        this.setState(nextState);
+    }
+
+    _clearTimePickerView() {
+        return new Promise((resolve, reject) => {
+            if (this.state.timePickerCallback) {
+                this.state.timePickerCallback(null);
+            }
+
+            LayoutAnimation.easeInEaseOut();
+
+            this.setState({
+                timePickerDisplay: false,
+                timePickerSelectedValue: null,
+            });
+
+            return resolve();
+        });
+
+    }
+
+    _unsetTimePickerView() {
+        return new Promise((resolve, reject) => {
+            LayoutAnimation.easeInEaseOut();
+
+            this.setState({
+                timePickerDisplay: false,
+                timePickerSelectedValue: null,
             });
 
             return resolve();

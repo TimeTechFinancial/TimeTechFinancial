@@ -80,14 +80,18 @@ export default class TextInputLabelView extends Component {
     }
 
     componentWillReceiveProps(nextProps) {
-        if (this.props.value !== nextProps.value && this.state.textInputFocused === false) {
-            if (nextProps.value && nextProps.value !== '') {
-                this.state.textLabelActive = true;
-                this.state.textLabelActiveTransform.setValue(1);
-            }
-            else {
-                this.state.textLabelActive = false;
-                this.state.textLabelActiveTransform.setValue(0);
+        // format currency on load of data
+
+        if (this.props.value !== nextProps.value) {
+            if (this.state.textInputFocused === false) {
+                if (nextProps.value && nextProps.value !== '') {
+                    this.state.textLabelActive = true;
+                    this.state.textLabelActiveTransform.setValue(1);
+                }
+                else {
+                    this.state.textLabelActive = false;
+                    this.state.textLabelActiveTransform.setValue(0);
+                }
             }
         }
     }
@@ -168,7 +172,7 @@ export default class TextInputLabelView extends Component {
                             onLayout={this._onLayout.bind(this)}
                             style={styles.textInput}
                             maxLength={this.props.maxLength}
-                            multiline={(this.props.disableReturn!==true)}
+                            multiline={(this.props.disableReturn !== true)}
                             onChangeText={this._onTextInputValueChange.bind(this)}
                             value={this.props.value}
                             underlineColorAndroid={'rgba(0,0,0,0)'}
@@ -221,8 +225,16 @@ export default class TextInputLabelView extends Component {
             valueFormatted = valueFormatted.replace(/[\s]/g, '');
         }
 
+        if (this.props.disableNonNumeric) {
+            // This removes all non numeric, non-period characters, then replaces only the first period with "x", then removes all other periods, then changes "xxx" back to the period.
+            valueFormatted = valueFormatted.replace(/[^\d\.]/g, "")
+                .replace(/\./, "x")
+                .replace(/\./g, "")
+                .replace(/x/, ".");
+        }
+
         if (this.props.disableNonAlphanumeric) {
-            valueFormatted = valueFormatted.replace(/[^A-Za-z0-9_\-]/, '');
+            valueFormatted = valueFormatted.replace(/[^A-Za-z0-9\-]/, '');
         }
 
         if (valueFormatted === '' && this.state.textLabelActive === true) {
@@ -260,6 +272,7 @@ TextInputLabelView.defaultProps = {
     disableReturn: false,
     disableWhitespace: false,
     disableNonAlphanumeric: false,
+    disableNonNumeric: false,
     autoCapitalize: 'none',
     autoCorrect: true,
     submitButton: false,

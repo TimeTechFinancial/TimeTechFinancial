@@ -35,6 +35,7 @@ const emitter = new EventEmitter();
         }
         userData {
             buyInDate: string
+            buyInTime: string
             buyInPrice: number
             notes: string
             sector: string
@@ -314,11 +315,12 @@ module.exports = {
                                     symbol: data.Symbol,
                                     liveData: this.setLiveData(data),
                                     userData: {
-                                        buyInDate: '',
-                                        buyInPrice: '',
-                                        notes: '',
-                                        sector: '',
-                                        shares: '',
+                                        buyInDate: null,
+                                        buyInTime: null,
+                                        buyInPrice: null,
+                                        notes: null,
+                                        sector: null,
+                                        shares: null,
                                     },
                                 };
 
