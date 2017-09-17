@@ -168,7 +168,7 @@ export default class TextInputLabelView extends Component {
                             onLayout={this._onLayout.bind(this)}
                             style={styles.textInput}
                             maxLength={this.props.maxLength}
-                            multiline={true}
+                            multiline={(this.props.disableReturn!==true)}
                             onChangeText={this._onTextInputValueChange.bind(this)}
                             value={this.props.value}
                             underlineColorAndroid={'rgba(0,0,0,0)'}

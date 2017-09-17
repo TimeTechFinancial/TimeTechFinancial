@@ -9,7 +9,6 @@ import React, {
     Component,
 } from 'react';
 import {
-    ActionSheetIOS,
     AsyncStorage,
     InteractionManager,
     ListView,
@@ -271,7 +270,7 @@ export default class WatchListView extends Component {
 
                 return (
                     <TouchableWithoutFeedback onPress={() => {
-                        this._editSymbol(data)
+                        this._manageStock(data)
                     }}>
                         <View style={styles.stockContainer}>
                             <View style={styles.symbolContainer}>
@@ -454,33 +453,7 @@ export default class WatchListView extends Component {
                 });
     }
 
-    _editSymbol(data) {
-        let buttons = [
-            'Remove Stock',
-            'Cancel',
-        ];
-        let destructiveIndex = 0;
-        let cancelIndex = 1;
-
-        ActionSheetIOS.showActionSheetWithOptions({
-                message: data.symbol,
-                options: buttons,
-                cancelButtonIndex: cancelIndex,
-                destructiveButtonIndex: destructiveIndex,
-            },
-            (buttonIndex) => {
-                // remove stock from watchList
-                if (buttonIndex === 0) {
-                    WatchListStorageActions.removeFromData(data)
-                        .then(() => {
-                            // successfully added new stock to watch list
-                            WatchListStorageActions.emitter.emit('watchListLoadDate', Date.now());
-                        })
-                        .catch((errorMessage) => {
-                            // an error occured when trying to add stock symbol to local storage
-                            AppStorageActions.emitter.emit('setError', errorMessage);
-                        });
-                }
-            });
+    _manageStock() {
+        this.props.navigation.navigate('ManageStockView');
     }
 }

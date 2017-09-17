@@ -11,7 +11,6 @@ import React, {
 import {
     Platform,
     StatusBar,
-    StyleSheet,
 } from 'react-native';
 import {TabNavigator, TabBarBottom, StackNavigator} from 'react-navigation';
 import dismissKeyboard from 'dismissKeyboard';
@@ -20,9 +19,9 @@ import OptionsListView from 'OptionsListView';
 import WatchListView from 'WatchListView';
 import TradesView from 'TradesView';
 
-const AppStorageActions = require('AppStorageActions');
+import ManageStockView from 'ManageStockView';
 
-const styles = StyleSheet.create({});
+const AppStorageActions = require('AppStorageActions');
 
 const HomeNavigator = StackNavigator(
     {
@@ -49,6 +48,14 @@ const HomeNavigator = StackNavigator(
             navigationOptions: {
                 title: 'Trades',
                 headerTitle: 'Trades',
+                headerBackTitle: null,
+            },
+        },
+        ManageStockView: {
+            screen: ManageStockView,
+            navigationOptions: {
+                title: 'Manage Stock',
+                headerTitle: 'Manage Stock',
                 headerBackTitle: null,
             },
         },
