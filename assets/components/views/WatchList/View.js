@@ -268,13 +268,23 @@ export default class WatchListView extends Component {
                     };
                 }
 
+                let ownedStockTextColor = {
+                    color: '#000000'
+                };
+
+                if (data.userData.buyInPrice && data.userData.shares) {
+                    ownedStockTextColor = {
+                        color: '#1E88E5'
+                    };
+                }
+
                 return (
                     <TouchableWithoutFeedback onPress={() => {
                         this._manageStock(data)
                     }}>
                         <View style={styles.stockContainer}>
                             <View style={styles.symbolContainer}>
-                                <Text style={styles.symbolText}>
+                                <Text style={[styles.symbolText, ownedStockTextColor]}>
                                     {data.symbol}
                                 </Text>
                             </View>
